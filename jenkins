@@ -1,0 +1,60 @@
+pipeline {
+    agent any
+    
+    environment {
+        MAVEN_HOME = tool 'Maven'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                script {
+                    def mvnCmd = "${MAVEN_HOME}/bin/mvn"
+                    sh "${mvnCmd} clean install"
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                script {
+                    def mvnCmd = "${MAVEN_HOME}/bin/mvn"
+                    sh "${mvnCmd} test"
+                }
+            }
+        }
+
+        stage('Generate JaCoCo Report') {
+            steps {
+                script {
+                    def mvnCmd = "${MAVEN_HOME}/bin/mvn"
+                    sh "${mvnCmd} jacoco:report"
+                }
+            }
+        }
+
+        stage('Email Notification') {
+            steps {
+                script {
+                    emailext subject: "Build Status: ${currentBuild.result}",
+                            body: "Build Status: ${currentBuild.result}",
+                            to: 'recipient@example.com',
+                            mimeType: 'text/html',
+                            attachmentsPattern: 'target/site/jacoco/index.html'
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            junit 'target/surefire-reports/**/*.xml'
+        }
+    }
+}
